@@ -1,0 +1,14 @@
+{
+  "name": "Tommy Hilfiger สนีกเกอร์สีขาว",
+  "image": "sneaker.jpg",
+  "price": "",
+  "cta_label": "กดสั่งซื้อที่ตะกร้าเลย!",
+  "segments": [
+    {"role": "intro", "text": "รองเท้า Tommy Hilfiger"},
+    {"role": "point", "text": "สวยเรียบหรู"},
+    {"role": "point", "text": "แถบแดงเด่น มีสไตล์"},
+    {"role": "point", "text": "ใส่ได้ทุกวัน"},
+    {"role": "cta",   "text": "สั่งซื้อได้เลย"}
+  ],
+  "out": "../sneaker_review.mp4"
+}
