@@ -79,6 +79,7 @@ def main():
     ap.add_argument("--image", default="")
     ap.add_argument("--cta", default="กดสั่งซื้อที่ตะกร้าเลย!")
     ap.add_argument("--audio", default="", help="ไฟล์เพลง/เสียงพากย์ (ไม่บังคับ)")
+    ap.add_argument("--narration", default="", help="ข้อความพากย์เสียงไทย (ใช้ espeak-ng ออฟไลน์)")
     ap.add_argument("--out", default="review.mp4")
     a = ap.parse_args()
     points = [p.strip() for p in a.points.split("|") if p.strip()][:3]
@@ -131,9 +132,17 @@ def main():
         d.rectangle((0, H - 14, int(W * t / DUR), H), fill=ACCENT)
         img.convert("RGB").save(f"{tmp}/f{n:04d}.png")
 
+    if a.narration and not a.audio:
+        wav = f"{tmp}/voice.wav"
+        subprocess.run(["espeak-ng", "-v", "th", "-s", "160", "-p", "60", "-w", wav, a.narration], check=True)
+        dur = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", wav]))
+        speed = max(1.0, dur / (DUR - 0.8))  # เร่งให้พอดีไม่เกิน ~9.2 วินาที
+        a.audio = f"{tmp}/voice.m4a"
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-af",
+                        f"atempo={min(speed, 2.0):.3f},volume=1.1,apad", "-t", str(DUR), a.audio], check=True)
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", f"{tmp}/f%04d.png"]
     if a.audio:
-        cmd += ["-i", a.audio, "-shortest", "-af", f"afade=t=out:st={DUR-1}:d=1", "-c:a", "aac"]
+        cmd += ["-i", a.audio, "-c:a", "aac"]
     cmd += ["-t", str(DUR), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", a.out]
     subprocess.run(cmd, check=True)
     shutil.rmtree(tmp)
