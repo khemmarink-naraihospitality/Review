@@ -1,0 +1,14 @@
+{
+  "name": "อะแดปเตอร์ Type-C เป็นแจ็ค 3.5",
+  "image": "typec_adapter.jpg",
+  "price": "",
+  "cta_label": "กดสั่งซื้อที่ตะกร้าเลย!",
+  "segments": [
+    {"role": "intro", "text": "Type-C เป็นแจ็คหูฟัง"},
+    {"role": "point", "text": "ไม่มีเสียงรบกวน"},
+    {"role": "point", "text": "ฟังเพลง เล่นเกม"},
+    {"role": "point", "text": "เสียบใช้ได้ทันที"},
+    {"role": "cta",   "text": "สั่งซื้อได้เลย"}
+  ],
+  "out": "../typec_pro.mp4"
+}
