@@ -84,7 +84,11 @@ def main():
     points = [p.strip() for p in a.points.split("|") if p.strip()][:3]
 
     bg, prod = gradient(), product_img(a.image, a.name)
-    f_title, f_pt, f_price, f_cta, f_tag = font(FONT_B, 80), font(FONT_B, 58), font(FONT_B, 130), font(FONT_B, 64), font(FONT_B, 48)
+    f_title0, f_pt, f_price, f_cta, f_tag = font(FONT_B, 80), font(FONT_B, 58), font(FONT_B, 130), font(FONT_B, 64), font(FONT_B, 48)
+    size = 80
+    while size > 40 and font(FONT_B, size).getlength(a.name) > W - 120:
+        size -= 2
+    f_title = font(FONT_B, size)
     tmp = tempfile.mkdtemp()
     for n in range(FPS * DUR):
         t = n / FPS
@@ -111,7 +115,7 @@ def main():
                 d.line([(140 + x_off, y), (162 + x_off, y + 24), (200 + x_off, y - 26)], fill=ACCENT, width=11, joint="curve")
                 d.text((235 + x_off, y), pt, font=f_pt, fill=WHITE, anchor="lm")
         # ดาวคะแนน
-        if t >= 1.5:
+        if a.rating > 0 and t >= 1.5:
             stars(d, W // 2, 1060, a.rating * ease((t - 1.5) / 1.0))
         # ฉาก 8-10s: ราคา + CTA
         if t >= 7.8:
