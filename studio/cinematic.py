@@ -16,7 +16,59 @@ from build import build_audio, wrap_th, LayoutError
 
 W, H, FPS, DUR = 1280, 720, 30, 10.0
 FONT_B = B.FONT_B
+FONT_D = os.path.join(HERE, "fonts", "anton-latin-400-normal.woff")        # ตัวโฆษณาหนา (OFL)
+FONT_M = os.path.join(HERE, "fonts", "montserrat-latin-800-normal.woff")   # ชื่อแบรนด์ (OFL)
+RED, NAVY, MARQ = (200, 16, 46), (20, 33, 61), (219, 222, 230)
 ST = {}
+
+
+def build_marquee(texts, size=150):
+    """แถบตัวอักษรอังกฤษวิ่งด้านหลัง: แต่ละแถวเป็นข้อความซ้ำต่อกันยาวกว่าจอ"""
+    f = ImageFont.truetype(FONT_D, size)
+    rows = []
+    for tx in texts:
+        unit = tx.upper() + "   •   "
+        period = int(f.getlength(unit))
+        reps = int(np.ceil((W + period) / period)) + 1
+        strip = Image.new("RGBA", (period * reps, int(size * 1.35)), (0, 0, 0, 0))
+        d = ImageDraw.Draw(strip)
+        for k in range(reps):
+            d.text((k * period, strip.height // 2), unit, font=f, fill=MARQ + (255,), anchor="lm")
+        rows.append((strip, period))
+    return rows
+
+
+def word_layer(word, tl, p, y, max_size=230):
+    """คีย์เวิร์ดสีแดงตัวใหญ่ ตัวอักษรเด้งขึ้นทีละตัว (stagger) แล้วลอยช้าๆ"""
+    f = ST["wfont"].get((word, max_size))
+    if f is None:
+        sz = max_size
+        while ImageFont.truetype(FONT_D, sz).getlength(word) > W * 0.9:
+            sz -= 6
+        f = ST["wfont"][(word, max_size)] = ImageFont.truetype(FONT_D, sz)
+    lay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(lay)
+    total = f.getlength(word)
+    x = (W - total) / 2 + 18 * ease(p) - 9
+    for i, ch in enumerate(word):
+        q = ease((tl - 0.04 * i) / 0.35)
+        if q > 0:
+            d.text((x, y + (1 - q) * 70), ch, font=f, fill=RED + (int(235 * q),), anchor="lm")
+        x += f.getlength(word[:i + 1]) - f.getlength(word[:i])
+    return lay
+
+
+def text_base(shot, p, tl, t):
+    """พื้นสตูดิโอ + แถบตัวอักษรวิ่ง + คีย์เวิร์ดของฉาก (อยู่หลังรองเท้า)"""
+    bg = Image.fromarray(ST["bg"].astype(np.uint8)).convert("RGBA")
+    ys = [0.17, 0.5, 0.83]
+    for r, (strip, period) in enumerate(ST["marquee"]):
+        off = (t * 60 + r * 137) % period
+        x0 = -off if r % 2 == 0 else -period + off
+        bg.alpha_composite(strip, (int(x0), int(H * ys[r % 3] - strip.height / 2)))
+    if shot.get("word"):
+        bg.alpha_composite(word_layer(shot["word"], tl, p, H * shot.get("word_y", 0.5), shot.get("word_size", 230)))
+    return bg
 
 
 def font(sz):
@@ -59,7 +111,7 @@ def shoes_layer(sc, angle, single=False):
 
 def compose_studio(sc, angle, cx, cy, sweep, single=False):
     """พื้นหลังสตูดิโอ + เงา + รองเท้า + แสงกวาด -> RGB uint8"""
-    bg = Image.fromarray(ST["bg"].astype(np.uint8)).convert("RGBA")
+    bg = text_base(*ST["cur"])
     sh = shoes_layer(sc, angle, single)
     x, y = int(cx - sh.width / 2), int(cy - sh.height / 2)
     a = sh.getchannel("A").filter(ImageFilter.GaussianBlur(22))
@@ -78,20 +130,28 @@ def finish(arr, sweep):
     return np.clip(arr, 0, 255).astype(np.uint8)
 
 
-def detail_crop(box_c, win_w, rot180=False):
+def detail_crop(box_c, win_w, rot180=False, rot=0, out=(W, H)):
     """ตัดมุมกล้องจากภาพ x4 (พิกัดอิงรูปต้นฉบับ 1000px)"""
     big = ST["big"]
     cx, cy = box_c
     ww = win_w
-    wh = ww * H / W
+    wh = ww * out[1] / out[0]
+    if rot in (90, -90, 270):
+        ww, wh = wh, ww
     x0, y0, x1, y1 = (cx - ww / 2) * 4, (cy - wh / 2) * 4, (cx + ww / 2) * 4, (cy + wh / 2) * 4
-    im = big.crop((int(x0), int(y0), int(x1), int(y1))).resize((W, H), Image.LANCZOS)
+    im = big.crop((int(x0), int(y0), int(x1), int(y1)))
+    if rot:
+        im = im.rotate(rot, expand=True)
+    im = im.resize(out, Image.LANCZOS)
     return im.rotate(180) if rot180 else im
 
 
 def shot_frame(shot, p, t):
     kind = shot["kind"]
     sweep = (p * 1.4 - 0.2) if shot.get("sweep", True) else None
+    tl = ST["cur"][2]
+    if kind == "hero2":
+        return compose_studio(0.60 + 0.05 * ease(p), 24 - 14 * ease(p), W * 0.5, H * 0.51, sweep)
     if kind == "hero":
         return compose_studio(0.58 + 0.06 * ease(p), -34 + 12 * ease(p), W * 0.5, H * 0.50, sweep)
     if kind == "pair":     # เลื่อนกล้องจากรองเท้าข้างหนึ่งไปอีกข้าง
@@ -102,17 +162,39 @@ def shot_frame(shot, p, t):
         c0, c1 = shot["from"], shot["to"]
         c = (c0[0] + (c1[0] - c0[0]) * ease(p), c0[1] + (c1[1] - c0[1]) * ease(p))
         win = shot["win"][0] + (shot["win"][1] - shot["win"][0]) * ease(p)
-        im = detail_crop(c, win, shot.get("rot180", False)).filter(ImageFilter.UnsharpMask(radius=2, percent=55, threshold=2))
+        if shot.get("card"):          # การ์ดภาพซูมใกล้ ลอยบนพื้นที่มีตัวอักษรวิ่ง
+            cw, chh = shot.get("card_size", [820, 461])
+            im = detail_crop(c, win, shot.get("rot180", False), shot.get("rot", 0), (cw, chh))
+            im = im.filter(ImageFilter.UnsharpMask(radius=2, percent=55, threshold=2)).convert("RGBA")
+            s = 0.93 + 0.07 * ease(tl / 0.55)
+            im = im.resize((int(cw * s), int(chh * s)), Image.LANCZOS)
+            mask = Image.new("L", im.size, 0)
+            ImageDraw.Draw(mask).rounded_rectangle((0, 0, im.width - 1, im.height - 1), 30, fill=255)
+            im.putalpha(mask)
+            base = text_base(*ST["cur"])
+            x, y = int(W / 2 - im.width / 2), int(H * shot.get("card_y", 0.57) - im.height / 2)
+            shd = Image.new("RGBA", im.size, (20, 24, 40, 0))
+            shd.putalpha(mask.point(lambda v: int(v * 0.35)).filter(ImageFilter.GaussianBlur(18)))
+            base.alpha_composite(shd, (x + 14, y + 24))
+            base.alpha_composite(im, (x, y))
+            return finish(np.asarray(base.convert("RGB")).astype(np.float32), sweep)
+        im = detail_crop(c, win, shot.get("rot180", False), shot.get("rot", 0)).filter(ImageFilter.UnsharpMask(radius=2, percent=55, threshold=2))
         return finish(np.asarray(im).astype(np.float32), sweep)
     if kind == "end":
-        k = ease(p * 2.5)
-        arr = compose_studio(0.47 + 0.05 * ease(p), -31 + 3 * ease(p), W * 0.27, H * 0.50, p * 1.2 - 0.1).astype(np.float32)
-        img = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
-        d = ImageDraw.Draw(img)
-        f = ST["f_brand"]
-        col = tuple(int(c * k + 225 * (1 - k)) for c in (28, 32, 48))
-        d.text((W * 0.71, H * 0.50), shot["text"], font=f, fill=col, anchor="mm")
-        return np.asarray(img)
+        arr = compose_studio(0.47 + 0.05 * ease(p), -31 + 3 * ease(p), W * 0.27, H * 0.50, p * 1.2 - 0.1)
+        img = Image.fromarray(arr).convert("RGBA")
+        lay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        d = ImageDraw.Draw(lay)
+        k1, k2 = ease((tl - 0.15) / 0.6), ease((tl - 0.55) / 0.5)
+        d.text((W * 0.71 + 60 * (1 - k1), H * 0.46), shot["text"], font=ST["f_brand"], fill=NAVY + (int(255 * k1),), anchor="mm")
+        if shot.get("tag"):
+            ft = ST["f_tag"]
+            tw_ = ft.getlength(shot["tag"])
+            cx_, cy_ = W * 0.71, H * 0.60 + 20 * (1 - k2)
+            d.rounded_rectangle((cx_ - tw_ / 2 - 26, cy_ - 30, cx_ + tw_ / 2 + 26, cy_ + 30), 30, fill=RED + (int(255 * k2),))
+            d.text((cx_, cy_ + 1), shot["tag"], font=ft, fill=(255, 255, 255, int(255 * k2)), anchor="mm")
+        img.alpha_composite(lay)
+        return np.asarray(img.convert("RGB"))
     raise ValueError(kind)
 
 
@@ -133,8 +215,9 @@ def frame(n):
     i = next(k for k in range(len(shots)) if t < bounds[k + 1] or k == len(shots) - 1)
 
     def render(k):
-        p = (t - bounds[k]) / (bounds[k + 1] - bounds[k])
-        return shot_frame(shots[k], max(0.0, min(1.0, p)), t)
+        p = max(0.0, min(1.0, (t - bounds[k]) / (bounds[k + 1] - bounds[k])))
+        ST["cur"] = (shots[k], p, t - bounds[k], t)
+        return shot_frame(shots[k], p, t)
 
     cur = render(i)
     FADE = 0.16
@@ -142,6 +225,9 @@ def frame(n):
         a = ease((t - (bounds[i + 1] - FADE)) / FADE)
         nxt = render(i + 1)
         cur = (cur.astype(np.float32) * (1 - a) + nxt.astype(np.float32) * a).astype(np.uint8)
+    if t > DUR - ST["fade_out"]:           # จบแบบนุ่ม: ค่อยๆ จางเป็นสีพื้นสตูดิโอ
+        a = ease((t - (DUR - ST["fade_out"])) / ST["fade_out"])
+        cur = (cur.astype(np.float32) * (1 - a) + np.array([244, 245, 248], np.float32) * a).astype(np.uint8)
     img = Image.fromarray(cur)
     if ST["subtitles"]:
         for k, (t0, t1) in enumerate(marks):
@@ -165,6 +251,8 @@ def denoise_details(shots):
     for sh in shots:
         if sh["kind"] != "detail":
             continue
+        if sh.get("rot") in (90, -90, 270):
+            continue                         # ช็อตหมุน 90° ใช้หน้าต่างคนละทรง: ข้าม (บริเวณนี้ไม่มีเส้นรบกวนหนัก)
         ww = max(sh["win"]) * 1.15
         wh = ww * H / W
         xs = [sh["from"][0], sh["to"][0]]
@@ -177,25 +265,33 @@ def denoise_details(shots):
     ST["big"] = Image.fromarray(big)
 
 
-def mix_music(voice_m4a, tmp, bpm, music_lufs):
-    """ดนตรีพื้นหลังเบาๆ + ducking อัตโนมัติตอนมีเสียงพากย์ แล้วจำกัดพีค"""
+def mix_music(voice_m4a, tmp, bpm, music_lufs, style="soft", outro_at=None):
+    """ดนตรีพื้นหลัง + ducking อัตโนมัติตอนมีเสียงพากย์ แล้วจำกัดพีค"""
     import soundfile as sf, pyloudnorm as pyln, music
-    x = music.make(DUR, bpm)
+    x = music.make_fun(DUR, bpm, outro_at) if style == "fun" else music.make(DUR, bpm)
     x = x * (10 ** ((music_lufs - pyln.Meter(music.SR).integrated_loudness(x)) / 20))
     bgm = os.path.join(tmp, "bgm.wav")
     sf.write(bgm, x, music.SR)
     out = os.path.join(tmp, "mix.m4a")
+    ratio = 6 if style == "fun" else 3.5         # เพลงสนุกมีเสียงกลางเยอะ: กดลงมากขึ้นเฉพาะตอนพูด
     graph = ("[0:a]asplit=2[v][sc];"
-             "[1:a][sc]sidechaincompress=threshold=0.06:ratio=3.5:attack=40:release=500:makeup=1[m];"
-             "[v][m]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.85:level=false[o]")
+             f"[1:a][sc]sidechaincompress=threshold=0.05:ratio={ratio}:attack=25:release=450:makeup=1[m];"
+             "[v][m]amix=inputs=2:normalize=0:duration=first[o]")
+    raw = os.path.join(tmp, "mix_raw.wav")
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", voice_m4a, "-i", bgm, "-filter_complex", graph,
-                    "-map", "[o]", "-t", str(DUR), "-ar", "48000", "-ac", "2", "-c:a", "aac", "-b:a", "192k", out], check=True)
+                    "-map", "[o]", "-t", str(DUR), "-ar", "48000", "-ac", "2", raw], check=True)
+    y, sr = sf.read(raw, dtype="float32")             # ปรับความดังรวมเป็น -16 LUFS แล้วจำกัดพีค
+    gain = -16.0 - pyln.Meter(sr).integrated_loudness(y)
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-af", f"volume={gain:.2f}dB,alimiter=limit=0.84:level=false",
+                    "-c:a", "aac", "-b:a", "192k", out], check=True)
     return out
 
 
 def main():
+    global DUR
     spec_path = os.path.abspath(sys.argv[1])
     spec = json.load(open(spec_path))
+    DUR = float(spec.get("duration", 10.0))
     base = os.path.dirname(spec_path)
     assets = os.path.normpath(os.path.join(base, spec["assets"]))
     out = os.path.normpath(os.path.join(base, spec.get("out", "out.mp4")))
@@ -203,15 +299,21 @@ def main():
     assert len(segs) == len(shots), "จำนวน shots ต้องเท่ากับ segments"
     tmp = tempfile.mkdtemp()
     try:
-        m4a, marks, speed = build_audio(segs, tmp)
+        m4a, marks, speed = build_audio(segs, tmp, dur=DUR, lead=spec.get("lead", 0.35),
+                                        tail=spec.get("outro", 0.45), max_extra=spec.get("max_gap_extra", 0.25))
         if spec.get("music", True):
-            m4a = mix_music(m4a, tmp, spec.get("music_bpm", 92), spec.get("music_lufs", -21.0))
+            m4a = mix_music(m4a, tmp, spec.get("music_bpm", 92), spec.get("music_lufs", -21.0),
+                            spec.get("music_style", "soft"), marks[-1][1] + 0.3)
         # ขอบเขตแต่ละฉาก = กึ่งกลางช่องว่างระหว่างประโยค
         bounds = [0.0] + [(marks[i][1] + marks[i + 1][0]) / 2 for i in range(len(marks) - 1)] + [DUR]
         cut = crop_cut(Image.open(f"{assets}/cutout.png").convert("RGBA"))
         ST.update(bg=studio_bg(), cut=cut, single=split_left(cut),
                   big=Image.open(f"{assets}/photo_x4.png").convert("RGB"), shots=shots, segs=segs, marks=marks,
-                  bounds=bounds, subtitles=spec.get("subtitles", True), f_brand=font(spec.get("brand_size", 84)))
+                  bounds=bounds, subtitles=spec.get("subtitles", True), f_brand=font(spec.get("brand_size", 84)),
+                  marquee=build_marquee(spec.get("marquee", [])), wfont={}, fade_out=spec.get("fade_out", 0.0),
+                  f_tag=ImageFont.truetype(FONT_D, 34), cur=None)
+        if spec.get("brand_font") == "montserrat":
+            ST["f_brand"] = ImageFont.truetype(FONT_M, spec.get("brand_size", 64))
         denoise_details(shots)
         y, x = np.mgrid[0:H, 0:W].astype(np.float32)
         r = np.sqrt(((x - W / 2) / (W * 0.75)) ** 2 + ((y - H / 2) / (H * 0.85)) ** 2)

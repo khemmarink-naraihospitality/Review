@@ -1,0 +1,122 @@
+{
+  "size": [
+    1280,
+    720
+  ],
+  "duration": 20.0,
+  "assets": "../assets/sneaker",
+  "subtitles": false,
+  "music": true,
+  "music_style": "fun",
+  "music_bpm": 118,
+  "music_lufs": -21.0,
+  "lead": 0.6,
+  "outro": 2.6,
+  "max_gap_extra": 1.0,
+  "fade_out": 0.6,
+  "brand_font": "montserrat",
+  "brand_size": 60,
+  "marquee": [
+    "TOMMY HILFIGER",
+    "CLASSIC WHITE SNEAKER",
+    "EVERYDAY STYLE"
+  ],
+  "segments": [
+    {
+      "text": "พบกับ รองเท้า Tommy Hilfiger",
+      "speed": 0.85
+    },
+    {
+      "text": "แถบแดงเด่น มีสไตล์"
+    },
+    {
+      "text": "สวยเรียบหรู"
+    },
+    {
+      "text": "โลโก้แบรนด์ชัดเจน"
+    },
+    {
+      "text": "จับคู่ได้ทุกลุค"
+    },
+    {
+      "text": "ดูดี ทุกวัน"
+    },
+    {
+      "text": "สั่งซื้อได้เลย"
+    }
+  ],
+  "shots": [
+    {
+      "kind": "hero",
+      "word": "CLASSIC"
+    },
+    {
+      "kind": "detail",
+      "card": true,
+      "from": [
+        665,
+        560
+      ],
+      "to": [
+        665,
+        550
+      ],
+      "win": [
+        470,
+        400
+      ],
+      "rot180": true,
+      "word": "RED DETAIL",
+      "card_size": [
+        700,
+        394
+      ],
+      "card_y": 0.6,
+      "word_y": 0.15,
+      "word_size": 140
+    },
+    {
+      "kind": "single",
+      "word": "CLEAN"
+    },
+    {
+      "kind": "detail",
+      "card": true,
+      "from": [
+        335,
+        716
+      ],
+      "to": [
+        335,
+        708
+      ],
+      "win": [
+        290,
+        250
+      ],
+      "rot": -90,
+      "word": "ICONIC LOGO",
+      "card_size": [
+        700,
+        394
+      ],
+      "card_y": 0.6,
+      "word_y": 0.15,
+      "word_size": 140
+    },
+    {
+      "kind": "pair",
+      "word": "MATCH ANY LOOK"
+    },
+    {
+      "kind": "hero2",
+      "word": "EVERYDAY"
+    },
+    {
+      "kind": "end",
+      "text": "TOMMY HILFIGER",
+      "tag": "SHOP NOW"
+    }
+  ],
+  "out": "../sneaker_20s.mp4"
+}

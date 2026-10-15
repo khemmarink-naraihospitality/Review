@@ -64,20 +64,23 @@ def ease(t):
 
 
 # ---------------------------------------------------------------- audio
-def build_audio(segs, tmp):
+def build_audio(segs, tmp, dur=None, lead=None, tail=None, max_extra=0.25):
     """สังเคราะห์ทีละประโยค -> ไทม์ไลน์ + เวลาเริ่ม/จบของแต่ละประโยค"""
+    dur = DUR if dur is None else dur
+    lead = LEAD if lead is None else lead
+    tail = TAIL if tail is None else tail
     for speed in (1.0, 1.05, 1.10):
         clips = [synth(s.get("say") or s["text"], speed=round(speed * s.get("speed", 1.0), 3)) for s in segs]
         durs = [len(c) / TTS_SR for c in clips]
-        total = LEAD + sum(durs) + GAP * (len(segs) - 1)
-        if total <= DUR - TAIL:
+        total = lead + sum(durs) + GAP * (len(segs) - 1)
+        if total <= dur - tail:
             break
     else:
-        raise LayoutError(f"บทพากย์ยาว {total:.1f}s เกิน {DUR - TAIL:.1f}s แม้เร่งสูงสุด — ย่อบท")
-    spare = (DUR - TAIL) - total
-    gap = GAP + min(0.25, spare / max(1, len(segs) - 1))      # กระจายเวลาที่เหลือ
-    t, marks = LEAD, []
-    line = np.zeros(int(DUR * TTS_SR), dtype=np.float32)
+        raise LayoutError(f"บทพากย์ยาว {total:.1f}s เกิน {dur - tail:.1f}s แม้เร่งสูงสุด — ย่อบท")
+    spare = (dur - tail) - total
+    gap = GAP + min(max_extra, spare / max(1, len(segs) - 1))      # กระจายเวลาที่เหลือ
+    t, marks = lead, []
+    line = np.zeros(int(dur * TTS_SR), dtype=np.float32)
     for c, d in zip(clips, durs):
         a = int(t * TTS_SR)
         line[a:a + len(c)] += c

@@ -43,7 +43,8 @@ def run(video, spec_path):
 
     j, v, a = probe(video)
     dur = float(j["format"]["duration"])
-    add("PASS" if abs(dur - 10.0) <= 0.05 else "FAIL", "ความยาว", f"{dur:.2f}s (ต้อง 10.00±0.05)")
+    want_d = float(spec.get("duration", 10.0))
+    add("PASS" if abs(dur - want_d) <= 0.05 else "FAIL", "ความยาว", f"{dur:.2f}s (ต้อง {want_d:.2f}±0.05)")
     want = tuple(spec.get("size", [1080, 1920]))
     ok = (v["width"], v["height"]) == want and v["codec_name"] == "h264" and v["pix_fmt"] == "yuv420p"
     add("PASS" if ok else "FAIL", "วิดีโอ", f'{v["width"]}x{v["height"]} {v["codec_name"]} {v["pix_fmt"]} {v["r_frame_rate"]}')
@@ -97,7 +98,7 @@ def run(video, spec_path):
 
     # เฟรมต้องไม่ว่าง/ไม่ค้าง + contact sheet
     tmp2 = tempfile.mkdtemp()
-    times = [0.6] + [(m["start"] + m["end"]) / 2 for m in timing["segments"]] + [9.8]
+    times = [0.6] + [(m["start"] + m["end"]) / 2 for m in timing["segments"]] + [dur - float(spec.get("fade_out", 0.0)) - 0.25]   # ก่อนช่วงจางจบที่ตั้งใจ
     frames = []
     for i, t in enumerate(times):
         fp = os.path.join(tmp2, f"{i}.png")
