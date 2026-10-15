@@ -62,10 +62,17 @@ def text_base(shot, p, tl, t):
     """พื้นสตูดิโอ + แถบตัวอักษรวิ่ง + คีย์เวิร์ดของฉาก (อยู่หลังรองเท้า)"""
     bg = Image.fromarray(ST["bg"].astype(np.uint8)).convert("RGBA")
     ys = [0.17, 0.5, 0.83]
+    mq = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     for r, (strip, period) in enumerate(ST["marquee"]):
         off = (t * 60 + r * 137) % period
         x0 = -off if r % 2 == 0 else -period + off
-        bg.alpha_composite(strip, (int(x0), int(H * ys[r % 3] - strip.height / 2)))
+        mq.alpha_composite(strip, (int(x0), int(H * ys[r % 3] - strip.height / 2)))
+    dim = shot.get("marquee_alpha", 1.0)
+    if shot["kind"] == "end":              # ฉากจบ: หรี่ตัววิ่งลงให้ชื่อแบรนด์เด่น
+        dim = min(dim, 1.0 - 0.6 * ease(tl / 0.6))
+    if dim < 1.0:
+        mq.putalpha(mq.getchannel("A").point(lambda v: int(v * dim)))
+    bg.alpha_composite(mq)
     if shot.get("word"):
         bg.alpha_composite(word_layer(shot["word"], tl, p, H * shot.get("word_y", 0.5), shot.get("word_size", 230)))
     return bg
@@ -151,13 +158,17 @@ def shot_frame(shot, p, t):
     sweep = (p * 1.4 - 0.2) if shot.get("sweep", True) else None
     tl = ST["cur"][2]
     if kind == "hero2":
-        return compose_studio(0.60 + 0.05 * ease(p), 24 - 14 * ease(p), W * 0.5, H * 0.51, sweep)
+        s0, s1 = shot.get("scale", [0.60, 0.65])
+        return compose_studio(s0 + (s1 - s0) * ease(p), 24 - 14 * ease(p), W * 0.5, H * shot.get("cy", 0.51), sweep)
     if kind == "hero":
-        return compose_studio(0.58 + 0.06 * ease(p), -34 + 12 * ease(p), W * 0.5, H * 0.50, sweep)
+        s0, s1 = shot.get("scale", [0.58, 0.64])
+        return compose_studio(s0 + (s1 - s0) * ease(p), -34 + 12 * ease(p), W * 0.5, H * shot.get("cy", 0.50), sweep)
     if kind == "pair":     # เลื่อนกล้องจากรองเท้าข้างหนึ่งไปอีกข้าง
-        return compose_studio(0.86 + 0.05 * ease(p), -90, W * (0.47 + 0.06 * ease(p)), H * 0.5, sweep)
+        s0, s1 = shot.get("scale", [0.86, 0.91])
+        return compose_studio(s0 + (s1 - s0) * ease(p), -90, W * (0.47 + 0.06 * ease(p)), H * shot.get("cy", 0.5), sweep)
     if kind == "single":   # รองเท้าข้างเดียว ความละเอียดจริงของรูป (คมกว่าภาพขยาย)
-        return compose_studio(0.70 + 0.06 * ease(p), 58 - 8 * ease(p), W * (0.52 - 0.04 * ease(p)), H * 0.5, sweep, single=True)
+        s0, s1 = shot.get("scale", [0.70, 0.76])
+        return compose_studio(s0 + (s1 - s0) * ease(p), 58 - 8 * ease(p), W * (0.52 - 0.04 * ease(p)), H * shot.get("cy", 0.5), sweep, single=True)
     if kind == "detail":
         c0, c1 = shot["from"], shot["to"]
         c = (c0[0] + (c1[0] - c0[0]) * ease(p), c0[1] + (c1[1] - c0[1]) * ease(p))
@@ -273,7 +284,7 @@ def mix_music(voice_m4a, tmp, bpm, music_lufs, style="soft", outro_at=None):
     bgm = os.path.join(tmp, "bgm.wav")
     sf.write(bgm, x, music.SR)
     out = os.path.join(tmp, "mix.m4a")
-    ratio = 6 if style == "fun" else 3.5         # เพลงสนุกมีเสียงกลางเยอะ: กดลงมากขึ้นเฉพาะตอนพูด
+    ratio = 4.5 if style == "fun" else 3.5         # เพลงสนุกมีเสียงกลางเยอะ: กดลงมากขึ้นเฉพาะตอนพูด
     graph = ("[0:a]asplit=2[v][sc];"
              f"[1:a][sc]sidechaincompress=threshold=0.05:ratio={ratio}:attack=25:release=450:makeup=1[m];"
              "[v][m]amix=inputs=2:normalize=0:duration=first[o]")
