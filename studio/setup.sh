@@ -14,3 +14,5 @@ mkdir -p "$M/u2net" "$M/sr"
 [ -f "$M/u2net/isnet-general-use.onnx" ] || curl -sSL -o "$M/u2net/isnet-general-use.onnx" https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx
 [ -f "$M/sr/EDSR_x4.pb" ] || curl -sSL -o "$M/sr/EDSR_x4.pb" https://raw.githubusercontent.com/Saafke/EDSR_Tensorflow/master/models/EDSR_x4.pb
 echo "สไตล์สตูดิโอ: python3 prep_assets.py รูป.jpg assets/ชื่อ  แล้ว python3 cinematic.py specs/xxx_cine.json"
+# หู AI: AudioSet tagger (CED) ตรวจว่าได้ยินดนตรี/เสียงพูดจริง ผ่านลำโพงมือถือจำลอง
+[ -f "$M/sherpa-onnx-ced-base-audio-tagging-2024-04-19/model.int8.onnx" ] || curl -sSL https://github.com/k2-fsa/sherpa-onnx/releases/download/audio-tagging-models/sherpa-onnx-ced-base-audio-tagging-2024-04-19.tar.bz2 | tar -xj -C "$M"

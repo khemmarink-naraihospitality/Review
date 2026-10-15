@@ -41,17 +41,26 @@ def crop_cut(cut):
     return cut.crop(bb)
 
 
-def shoes_layer(sc, angle):
-    im = ST["cut"]
+def split_left(cut):
+    """แยกรองเท้าข้างซ้ายจากคู่: หาคอลัมน์ว่างที่สุดช่วงกลางภาพ"""
+    a = np.asarray(cut.getchannel("A")).astype(np.float32).sum(0)
+    w = len(a)
+    mid = int(w * 0.3) + int(np.argmin(a[int(w * 0.3):int(w * 0.7)]))
+    left = cut.crop((0, 0, mid, cut.height))
+    return left.crop(left.getchannel("A").getbbox())
+
+
+def shoes_layer(sc, angle, single=False):
+    im = ST["single"] if single else ST["cut"]
     w, h = im.size
     im = im.resize((max(1, int(w * sc)), max(1, int(h * sc))), Image.LANCZOS).rotate(angle, resample=Image.BICUBIC, expand=True)
     return im
 
 
-def compose_studio(sc, angle, cx, cy, sweep):
+def compose_studio(sc, angle, cx, cy, sweep, single=False):
     """พื้นหลังสตูดิโอ + เงา + รองเท้า + แสงกวาด -> RGB uint8"""
     bg = Image.fromarray(ST["bg"].astype(np.uint8)).convert("RGBA")
-    sh = shoes_layer(sc, angle)
+    sh = shoes_layer(sc, angle, single)
     x, y = int(cx - sh.width / 2), int(cy - sh.height / 2)
     a = sh.getchannel("A").filter(ImageFilter.GaussianBlur(22))
     shadow = Image.new("RGBA", sh.size, (30, 34, 48, 0))
@@ -84,14 +93,16 @@ def shot_frame(shot, p, t):
     kind = shot["kind"]
     sweep = (p * 1.4 - 0.2) if shot.get("sweep", True) else None
     if kind == "hero":
-        return compose_studio(0.54 + 0.10 * ease(p), -34 + 12 * ease(p), W * 0.5, H * 0.50, sweep)
+        return compose_studio(0.58 + 0.06 * ease(p), -34 + 12 * ease(p), W * 0.5, H * 0.50, sweep)
     if kind == "pair":     # เลื่อนกล้องจากรองเท้าข้างหนึ่งไปอีกข้าง
-        return compose_studio(1.55, -90, W * 0.5, H * (0.74 - 0.5 * ease(p)), sweep)
+        return compose_studio(0.86 + 0.05 * ease(p), -90, W * (0.47 + 0.06 * ease(p)), H * 0.5, sweep)
+    if kind == "single":   # รองเท้าข้างเดียว ความละเอียดจริงของรูป (คมกว่าภาพขยาย)
+        return compose_studio(0.70 + 0.06 * ease(p), 58 - 8 * ease(p), W * (0.52 - 0.04 * ease(p)), H * 0.5, sweep, single=True)
     if kind == "detail":
         c0, c1 = shot["from"], shot["to"]
         c = (c0[0] + (c1[0] - c0[0]) * ease(p), c0[1] + (c1[1] - c0[1]) * ease(p))
         win = shot["win"][0] + (shot["win"][1] - shot["win"][0]) * ease(p)
-        im = detail_crop(c, win, shot.get("rot180", False))
+        im = detail_crop(c, win, shot.get("rot180", False)).filter(ImageFilter.UnsharpMask(radius=2, percent=55, threshold=2))
         return finish(np.asarray(im).astype(np.float32), sweep)
     if kind == "end":
         k = ease(p * 2.5)
@@ -156,7 +167,7 @@ def mix_music(voice_m4a, tmp, bpm, music_lufs):
     sf.write(bgm, x, music.SR)
     out = os.path.join(tmp, "mix.m4a")
     graph = ("[0:a]asplit=2[v][sc];"
-             "[1:a][sc]sidechaincompress=threshold=0.02:ratio=5:attack=30:release=450:makeup=1[m];"
+             "[1:a][sc]sidechaincompress=threshold=0.06:ratio=3.5:attack=40:release=500:makeup=1[m];"
              "[v][m]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.85:level=false[o]")
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", voice_m4a, "-i", bgm, "-filter_complex", graph,
                     "-map", "[o]", "-t", str(DUR), "-ar", "48000", "-ac", "2", "-c:a", "aac", "-b:a", "192k", out], check=True)
@@ -175,10 +186,11 @@ def main():
     try:
         m4a, marks, speed = build_audio(segs, tmp)
         if spec.get("music", True):
-            m4a = mix_music(m4a, tmp, spec.get("music_bpm", 92), spec.get("music_lufs", -31.0))
+            m4a = mix_music(m4a, tmp, spec.get("music_bpm", 92), spec.get("music_lufs", -21.0))
         # ขอบเขตแต่ละฉาก = กึ่งกลางช่องว่างระหว่างประโยค
         bounds = [0.0] + [(marks[i][1] + marks[i + 1][0]) / 2 for i in range(len(marks) - 1)] + [DUR]
-        ST.update(bg=studio_bg(), cut=crop_cut(Image.open(f"{assets}/cutout.png").convert("RGBA")),
+        cut = crop_cut(Image.open(f"{assets}/cutout.png").convert("RGBA"))
+        ST.update(bg=studio_bg(), cut=cut, single=split_left(cut),
                   big=Image.open(f"{assets}/photo_x4.png").convert("RGB"), shots=shots, segs=segs, marks=marks,
                   bounds=bounds, subtitles=spec.get("subtitles", True), f_brand=font(spec.get("brand_size", 84)))
         y, x = np.mgrid[0:H, 0:W].astype(np.float32)

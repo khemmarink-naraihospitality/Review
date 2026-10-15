@@ -1,22 +1,59 @@
 {
-  "size": [1280, 720],
+  "size": [
+    1280,
+    720
+  ],
   "assets": "../assets/sneaker",
   "subtitles": false,
   "music": true,
   "brand_size": 64,
   "segments": [
-    {"text": "รองเท้า Tommy Hilfiger"},
-    {"text": "แถบแดงเด่น มีสไตล์"},
-    {"text": "สวยเรียบหรู"},
-    {"text": "ใส่ได้ทุกวัน"},
-    {"text": "สั่งซื้อได้เลย"}
+    {
+      "text": "รองเท้า Tommy Hilfiger"
+    },
+    {
+      "text": "แถบแดงเด่น มีสไตล์"
+    },
+    {
+      "text": "สวยเรียบหรู"
+    },
+    {
+      "text": "ใส่ได้ทุกวัน"
+    },
+    {
+      "text": "สั่งซื้อได้เลย"
+    }
   ],
   "shots": [
-    {"kind": "hero"},
-    {"kind": "detail", "from": [665, 560], "to": [665, 548], "win": [340, 270], "rot180": true},
-    {"kind": "detail", "from": [340, 480], "to": [340, 330], "win": [430, 380]},
-    {"kind": "pair"},
-    {"kind": "end", "text": "TOMMY HILFIGER"}
+    {
+      "kind": "hero"
+    },
+    {
+      "kind": "detail",
+      "from": [
+        665,
+        558
+      ],
+      "to": [
+        665,
+        550
+      ],
+      "win": [
+        480,
+        410
+      ],
+      "rot180": true
+    },
+    {
+      "kind": "single"
+    },
+    {
+      "kind": "pair"
+    },
+    {
+      "kind": "end",
+      "text": "TOMMY HILFIGER"
+    }
   ],
   "out": "../sneaker_cinematic.mp4"
 }

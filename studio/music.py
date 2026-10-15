@@ -80,6 +80,12 @@ def lowpass(x, fc):
     return np.fft.irfft(X / np.sqrt(1 + (f / fc) ** 6), len(x))
 
 
+def highpass(x, fc):
+    X = np.fft.rfft(x)
+    f = np.fft.rfftfreq(len(x), 1 / SR)
+    return np.fft.irfft(X / np.sqrt(1 + (fc / np.maximum(f, 1)) ** 4), len(x))
+
+
 def make(seconds=10.0, bpm=92, seed=7):
     rng = np.random.default_rng(seed)
     beat = 60 / bpm
@@ -89,11 +95,11 @@ def make(seconds=10.0, bpm=92, seed=7):
     t0, ci = 0.0, 0
     while t0 < seconds:
         ch = CHORDS[ci % 4]
-        p = pad([hz(a, o) for a, o in ch], bar + 0.6)
+        p = pad([hz(a, o + 1) for a, o in ch], bar + 0.6)
         i = int(t0 * SR)
         L[i:i + len(p)] += 0.55 * p
         R[i:i + len(p)] += 0.55 * p
-        notes = [hz(a, o + 1) for a, o in ch] + [hz(ch[1][0], ch[1][1] + 2)]
+        notes = [hz(a, o + 2) for a, o in ch] + [hz(ch[1][0], ch[1][1] + 3)]
         order = [0, 1, 2, 3, 4, 3, 2, 1]
         for k, j in enumerate(order):                       # arpeggio โน้ตละ 1/2 จังหวะ
             ts = t0 + k * beat / 2
@@ -110,7 +116,7 @@ def make(seconds=10.0, bpm=92, seed=7):
                 break
             a = int(ts * SR)
             if b in (0, 2):
-                k_ = kick() * 0.32
+                k_ = kick() * 0.18
                 L[a:a + len(k_)] += k_
                 R[a:a + len(k_)] += k_
             for off in (0.0, 0.5):
@@ -121,8 +127,8 @@ def make(seconds=10.0, bpm=92, seed=7):
         t0 += bar
         ci += 1
     L, R = reverb(L[:n], rng), reverb(R[:n], np.random.default_rng(seed + 1))
-    st = np.stack([lowpass(L, 4500), lowpass(R, 4500)], 1)
-    fi, fo = int(0.8 * SR), int(1.6 * SR)
+    st = np.stack([highpass(lowpass(L, 6000), 160), highpass(lowpass(R, 6000), 160)], 1)
+    fi, fo = int(0.25 * SR), int(0.7 * SR)
     st[:fi] *= np.linspace(0, 1, fi)[:, None]
     st[-fo:] *= (np.linspace(1, 0, fo) ** 2)[:, None]
     return (st / np.abs(st).max() * 0.7).astype(np.float32)

@@ -69,6 +69,11 @@ def run(video, spec_path):
             mid = np.concatenate([x[int(g0 * sr):int(g1 * sr)] for g0, g1 in gaps if g1 - g0 > 0.1])
             mus_db = 20 * np.log10(np.sqrt((mid ** 2).mean()) + 1e-9)
             add("PASS" if mus_db > -45 else "FAIL", "ได้ยินดนตรีพื้นหลัง", f"{mus_db:.1f} dB ช่วงหยุดพูด (ต้อง > -45)")
+            import listen   # หู AI (AudioSet) ฟังผ่านลำโพงมือถือจำลอง
+            rows = listen.report(listen.load(video))
+            frac = sum(r["music"] >= 0.3 for r in rows) / len(rows)
+            add("PASS" if frac >= 0.6 else "FAIL", "หู AI ได้ยินดนตรี (มือถือ)",
+                f"{frac:.0%} ของช่วงเวลา, เฉลี่ย {np.mean([r['music'] for r in rows]):.2f} (ต้อง ≥60%)")
         else:
             act = np.where(np.abs(x) > 0.01)[0]
             s0, s1 = act[0] / sr, act[-1] / sr
