@@ -137,7 +137,7 @@ def frame(n):
         return shot_frame(shots[k], max(0.0, min(1.0, p)), t)
 
     cur = render(i)
-    FADE = 0.22
+    FADE = 0.16
     if i + 1 < len(shots) and t > bounds[i + 1] - FADE:
         a = ease((t - (bounds[i + 1] - FADE)) / FADE)
         nxt = render(i + 1)
@@ -156,6 +156,25 @@ def render_range(args):
     lo, hi, tmp = args
     for n in range(lo, hi):
         frame(n).save(f"{tmp}/f{n:04d}.png", compress_level=1)
+
+
+def denoise_details(shots):
+    """ลบเส้น/บล็อก JPEG เฉพาะบริเวณที่ช็อตซูมใกล้ใช้ (ทำครั้งเดียวก่อนเรนเดอร์)"""
+    import cv2
+    big = np.asarray(ST["big"]).copy()
+    for sh in shots:
+        if sh["kind"] != "detail":
+            continue
+        ww = max(sh["win"]) * 1.15
+        wh = ww * H / W
+        xs = [sh["from"][0], sh["to"][0]]
+        ys = [sh["from"][1], sh["to"][1]]
+        x0, x1 = int(max(0, (min(xs) - ww / 2) * 4)), int(min(big.shape[1], (max(xs) + ww / 2) * 4))
+        y0, y1 = int(max(0, (min(ys) - wh / 2) * 4)), int(min(big.shape[0], (max(ys) + wh / 2) * 4))
+        region = cv2.cvtColor(big[y0:y1, x0:x1], cv2.COLOR_RGB2BGR)
+        region = cv2.fastNlMeansDenoisingColored(region, None, 6, 6, 7, 21)
+        big[y0:y1, x0:x1] = cv2.cvtColor(region, cv2.COLOR_BGR2RGB)
+    ST["big"] = Image.fromarray(big)
 
 
 def mix_music(voice_m4a, tmp, bpm, music_lufs):
@@ -193,6 +212,7 @@ def main():
         ST.update(bg=studio_bg(), cut=cut, single=split_left(cut),
                   big=Image.open(f"{assets}/photo_x4.png").convert("RGB"), shots=shots, segs=segs, marks=marks,
                   bounds=bounds, subtitles=spec.get("subtitles", True), f_brand=font(spec.get("brand_size", 84)))
+        denoise_details(shots)
         y, x = np.mgrid[0:H, 0:W].astype(np.float32)
         r = np.sqrt(((x - W / 2) / (W * 0.75)) ** 2 + ((y - H / 2) / (H * 0.85)) ** 2)
         ST["vig"] = (1 - 0.30 * np.clip(r - 0.35, 0, 1) ** 1.5)[..., None]

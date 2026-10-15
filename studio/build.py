@@ -67,7 +67,7 @@ def ease(t):
 def build_audio(segs, tmp):
     """สังเคราะห์ทีละประโยค -> ไทม์ไลน์ + เวลาเริ่ม/จบของแต่ละประโยค"""
     for speed in (1.0, 1.05, 1.10):
-        clips = [synth(s.get("say") or s["text"], speed=speed) for s in segs]
+        clips = [synth(s.get("say") or s["text"], speed=round(speed * s.get("speed", 1.0), 3)) for s in segs]
         durs = [len(c) / TTS_SR for c in clips]
         total = LEAD + sum(durs) + GAP * (len(segs) - 1)
         if total <= DUR - TAIL:
