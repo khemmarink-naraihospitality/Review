@@ -95,7 +95,7 @@ def shot_frame(shot, p, t):
         return finish(np.asarray(im).astype(np.float32), sweep)
     if kind == "end":
         k = ease(p * 2.5)
-        arr = compose_studio(0.50, -30, W * 0.27, H * 0.50, None).astype(np.float32)
+        arr = compose_studio(0.47 + 0.05 * ease(p), -31 + 3 * ease(p), W * 0.27, H * 0.50, p * 1.2 - 0.1).astype(np.float32)
         img = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
         d = ImageDraw.Draw(img)
         f = ST["f_brand"]
@@ -147,6 +147,22 @@ def render_range(args):
         frame(n).save(f"{tmp}/f{n:04d}.png", compress_level=1)
 
 
+def mix_music(voice_m4a, tmp, bpm, music_lufs):
+    """ดนตรีพื้นหลังเบาๆ + ducking อัตโนมัติตอนมีเสียงพากย์ แล้วจำกัดพีค"""
+    import soundfile as sf, pyloudnorm as pyln, music
+    x = music.make(DUR, bpm)
+    x = x * (10 ** ((music_lufs - pyln.Meter(music.SR).integrated_loudness(x)) / 20))
+    bgm = os.path.join(tmp, "bgm.wav")
+    sf.write(bgm, x, music.SR)
+    out = os.path.join(tmp, "mix.m4a")
+    graph = ("[0:a]asplit=2[v][sc];"
+             "[1:a][sc]sidechaincompress=threshold=0.02:ratio=5:attack=30:release=450:makeup=1[m];"
+             "[v][m]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.85:level=false[o]")
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", voice_m4a, "-i", bgm, "-filter_complex", graph,
+                    "-map", "[o]", "-t", str(DUR), "-ar", "48000", "-ac", "2", "-c:a", "aac", "-b:a", "192k", out], check=True)
+    return out
+
+
 def main():
     spec_path = os.path.abspath(sys.argv[1])
     spec = json.load(open(spec_path))
@@ -158,6 +174,8 @@ def main():
     tmp = tempfile.mkdtemp()
     try:
         m4a, marks, speed = build_audio(segs, tmp)
+        if spec.get("music", True):
+            m4a = mix_music(m4a, tmp, spec.get("music_bpm", 92), spec.get("music_lufs", -31.0))
         # ขอบเขตแต่ละฉาก = กึ่งกลางช่องว่างระหว่างประโยค
         bounds = [0.0] + [(marks[i][1] + marks[i + 1][0]) / 2 for i in range(len(marks) - 1)] + [DUR]
         ST.update(bg=studio_bg(), cut=crop_cut(Image.open(f"{assets}/cutout.png").convert("RGBA")),

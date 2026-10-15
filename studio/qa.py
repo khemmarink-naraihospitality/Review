@@ -60,8 +60,18 @@ def run(video, spec_path):
         wav = os.path.join(tmp, "a.wav")
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", video, "-vn", "-ac", "1", "-ar", "16000", wav], check=True)
         x, sr = sf.read(wav, dtype="float32")
-        act = np.where(np.abs(x) > 0.01)[0]
-        s0, s1 = act[0] / sr, act[-1] / sr
+        if spec.get("music", False):   # มีดนตรีตลอด: ดูเวลาพูดจากไทม์ไลน์ + ต้องเฟดจบ ไม่ตัดกุด
+            s0, s1 = timing["segments"][0]["start"], timing["segments"][-1]["end"]
+            tail = x[-int(0.15 * sr):]
+            tail_db = 20 * np.log10(np.sqrt((tail ** 2).mean()) + 1e-9)
+            add("PASS" if tail_db < -40 else "FAIL", "ดนตรีเฟดตอนจบ", f"{tail_db:.1f} dB ใน 0.15s สุดท้าย (ต้อง < -40)")
+            gaps = [(a["end"], b["start"]) for a, b in zip(timing["segments"], timing["segments"][1:])]
+            mid = np.concatenate([x[int(g0 * sr):int(g1 * sr)] for g0, g1 in gaps if g1 - g0 > 0.1])
+            mus_db = 20 * np.log10(np.sqrt((mid ** 2).mean()) + 1e-9)
+            add("PASS" if mus_db > -45 else "FAIL", "ได้ยินดนตรีพื้นหลัง", f"{mus_db:.1f} dB ช่วงหยุดพูด (ต้อง > -45)")
+        else:
+            act = np.where(np.abs(x) > 0.01)[0]
+            s0, s1 = act[0] / sr, act[-1] / sr
         add("PASS" if s0 >= 0.15 else "FAIL", "เสียงเริ่ม", f"{s0:.2f}s (ไม่ควรตัดหัว ≥0.15s)")
         add("PASS" if s1 <= dur - 0.3 else "FAIL", "เสียงจบ", f"{s1:.2f}s (ต้องจบก่อน {dur - 0.3:.2f}s ไม่ถูกตัดท้าย)")
 

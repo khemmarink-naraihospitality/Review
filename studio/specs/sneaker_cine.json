@@ -1,7 +1,8 @@
 {
   "size": [1280, 720],
   "assets": "../assets/sneaker",
-  "subtitles": true,
+  "subtitles": false,
+  "music": true,
   "brand_size": 64,
   "segments": [
     {"text": "รองเท้า Tommy Hilfiger"},
