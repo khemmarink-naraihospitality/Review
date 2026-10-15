@@ -245,7 +245,7 @@ def main():
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     report = {"out": out, "tts_speed": speed, "size": [W, H], "bounds": [round(b, 2) for b in bounds],
-              "segments": [{"text": s["text"], "start": round(m[0], 2), "end": round(m[1], 2)} for s, m in zip(segs, marks)]}
+              "segments": [{"text": s["text"], "speed": round(speed * s.get("speed", 1.0), 3), "start": round(m[0], 2), "end": round(m[1], 2)} for s, m in zip(segs, marks)]}
     json.dump(report, open(out + ".timing.json", "w"), ensure_ascii=False, indent=1)
     print("สร้างแล้ว:", out)
     for s, b0, b1 in zip(report["segments"], bounds, bounds[1:]):

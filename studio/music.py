@@ -128,9 +128,9 @@ def make(seconds=10.0, bpm=92, seed=7):
         ci += 1
     L, R = reverb(L[:n], rng), reverb(R[:n], np.random.default_rng(seed + 1))
     st = np.stack([highpass(lowpass(L, 6000), 160), highpass(lowpass(R, 6000), 160)], 1)
-    fi, fo = int(0.25 * SR), int(0.7 * SR)
+    fi, fo = int(0.25 * SR), int(0.8 * SR)
     st[:fi] *= np.linspace(0, 1, fi)[:, None]
-    st[-fo:] *= (np.linspace(1, 0, fo) ** 2)[:, None]
+    st[-fo:] *= (np.linspace(1, 0, fo) ** 1.3)[:, None]
     return (st / np.abs(st).max() * 0.7).astype(np.float32)
 
 
