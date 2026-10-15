@@ -44,7 +44,8 @@ def run(video, spec_path):
     j, v, a = probe(video)
     dur = float(j["format"]["duration"])
     add("PASS" if abs(dur - 10.0) <= 0.05 else "FAIL", "ความยาว", f"{dur:.2f}s (ต้อง 10.00±0.05)")
-    ok = (v["width"], v["height"]) == (1080, 1920) and v["codec_name"] == "h264" and v["pix_fmt"] == "yuv420p"
+    want = tuple(spec.get("size", [1080, 1920]))
+    ok = (v["width"], v["height"]) == want and v["codec_name"] == "h264" and v["pix_fmt"] == "yuv420p"
     add("PASS" if ok else "FAIL", "วิดีโอ", f'{v["width"]}x{v["height"]} {v["codec_name"]} {v["pix_fmt"]} {v["r_frame_rate"]}')
     if a is None:
         add("FAIL", "เสียง", "ไม่มีแทร็กเสียง")
@@ -91,9 +92,11 @@ def run(video, spec_path):
     add("PASS" if not blank else "FAIL", "เฟรมไม่ว่าง", f"ตรวจ {len(frames)} เฟรม" + (f" ว่าง: {blank}" if blank else ""))
     diffs = [np.abs(frames[i] - frames[i + 1]).mean() for i in range(len(frames) - 1)]
     add("PASS" if min(diffs) > 0.5 else "WARN", "ภาพเปลี่ยนตามประโยค", f"ผลต่างต่ำสุด {min(diffs):.2f}")
-    sheet = Image.new("RGB", (270 * len(frames), 480), (0, 0, 0))
+    tw = 270 if want[1] > want[0] else 400
+    th = int(tw * want[1] / want[0])
+    sheet = Image.new("RGB", (tw * len(frames), th), (0, 0, 0))
     for i, f in enumerate(frames):
-        sheet.paste(Image.fromarray(f.astype(np.uint8)).resize((270, 480)), (270 * i, 0))
+        sheet.paste(Image.fromarray(f.astype(np.uint8)).resize((tw, th)), (tw * i, 0))
     sheet_path = video + ".contact.png"
     sheet.save(sheet_path)
 
