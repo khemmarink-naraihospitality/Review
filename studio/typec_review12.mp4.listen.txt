@@ -1,23 +1,23 @@
- 0.0s  ดนตรี 0.55  เสียงพูด 0.35  | Music 0.55, Speech 0.35, Speech synthesizer 0.15
- 0.5s  ดนตรี 0.36  เสียงพูด 0.34  | Music 0.36, Speech 0.34, Speech synthesizer 0.29
- 1.0s  ดนตรี 0.42  เสียงพูด 0.42  | Music 0.42, Speech 0.42, Mantra 0.13
- 1.5s  ดนตรี 0.35  เสียงพูด 0.68  | Speech 0.68, Speech synthesizer 0.35, Music 0.35
- 2.0s  ดนตรี 0.36  เสียงพูด 0.64  | Speech 0.64, Speech synthesizer 0.62, Music 0.36
- 2.5s  ดนตรี 0.71  เสียงพูด 0.17  | Music 0.71, New-age music 0.18, Speech 0.17
- 3.0s  ดนตรี 0.62  เสียงพูด 0.54  | Music 0.62, Speech 0.54, Speech synthesizer 0.16
- 3.5s  ดนตรี 0.40  เสียงพูด 0.79  | Speech 0.79, Music 0.40, Speech synthesizer 0.38
- 4.0s  ดนตรี 0.32  เสียงพูด 0.27  | Music 0.32, Speech 0.27, Speech synthesizer 0.19
- 4.5s  ดนตรี 0.60  เสียงพูด 0.72  | Speech 0.72, Music 0.60, Speech synthesizer 0.17
- 5.0s  ดนตรี 0.44  เสียงพูด 0.80  | Speech 0.80, Music 0.44, Speech synthesizer 0.28
- 5.5s  ดนตรี 0.72  เสียงพูด 0.33  | Music 0.72, Speech 0.33, Plop 0.18
- 6.0s  ดนตรี 0.42  เสียงพูด 0.57  | Speech 0.57, Music 0.42, Mantra 0.16
- 6.5s  ดนตรี 0.07  เสียงพูด 0.72  | Speech 0.72, Radio 0.29, Speech synthesizer 0.14
- 7.0s  ดนตรี 0.68  เสียงพูด 0.66  | Music 0.68, Speech 0.66, Musical instrument 0.14
- 7.5s  ดนตรี 0.56  เสียงพูด 0.70  | Speech 0.70, Music 0.56, Speech synthesizer 0.15
- 8.0s  ดนตรี 0.43  เสียงพูด 0.74  | Speech 0.74, Music 0.43, Speech synthesizer 0.19
- 8.5s  ดนตรี 0.44  เสียงพูด 0.69  | Speech 0.69, Music 0.44, Ambient music 0.08
- 9.0s  ดนตรี 0.50  เสียงพูด 0.60  | Speech 0.60, Music 0.50, Ambient music 0.11
- 9.5s  ดนตรี 0.61  เสียงพูด 0.86  | Speech 0.86, Music 0.61, Radio 0.17
-10.0s  ดนตรี 0.65  เสียงพูด 0.79  | Speech 0.79, Music 0.65, Electronic music 0.07
-10.5s  ดนตรี 0.68  เสียงพูด 0.05  | Music 0.68, New-age music 0.15, Electronic music 0.06
+ 0.0s  ดนตรี 0.52  เสียงพูด 0.43  | Music 0.52, Speech 0.43, Speech synthesizer 0.29
+ 0.5s  ดนตรี 0.36  เสียงพูด 0.54  | Speech 0.54, Music 0.36, Speech synthesizer 0.22
+ 1.0s  ดนตรี 0.25  เสียงพูด 0.52  | Speech 0.52, Speech synthesizer 0.29, Music 0.25
+ 1.5s  ดนตรี 0.42  เสียงพูด 0.42  | Music 0.42, Speech 0.42, Speech synthesizer 0.25
+ 2.0s  ดนตรี 0.51  เสียงพูด 0.69  | Speech 0.69, Music 0.51, Speech synthesizer 0.41
+ 2.5s  ดนตรี 0.66  เสียงพูด 0.29  | Music 0.66, Speech 0.29, Electronic music 0.13
+ 3.0s  ดนตรี 0.59  เสียงพูด 0.55  | Music 0.59, Speech 0.55, Speech synthesizer 0.20
+ 3.5s  ดนตรี 0.23  เสียงพูด 0.80  | Speech 0.80, Speech synthesizer 0.61, Music 0.23
+ 4.0s  ดนตรี 0.25  เสียงพูด 0.39  | Speech 0.39, Speech synthesizer 0.25, Music 0.25
+ 4.5s  ดนตรี 0.55  เสียงพูด 0.66  | Speech 0.66, Music 0.55, Speech synthesizer 0.22
+ 5.0s  ดนตรี 0.43  เสียงพูด 0.75  | Speech 0.75, Music 0.43, Speech synthesizer 0.25
+ 5.5s  ดนตรี 0.63  เสียงพูด 0.54  | Music 0.63, Speech 0.54, Speech synthesizer 0.18
+ 6.0s  ดนตรี 0.43  เสียงพูด 0.61  | Speech 0.61, Music 0.43, Speech synthesizer 0.14
+ 6.5s  ดนตรี 0.13  เสียงพูด 0.66  | Speech 0.66, Radio 0.26, Speech synthesizer 0.21
+ 7.0s  ดนตรี 0.64  เสียงพูด 0.56  | Music 0.64, Speech 0.56, Musical instrument 0.12
+ 7.5s  ดนตรี 0.56  เสียงพูด 0.65  | Speech 0.65, Music 0.56, Speech synthesizer 0.19
+ 8.0s  ดนตรี 0.29  เสียงพูด 0.63  | Speech 0.63, Music 0.29, Speech synthesizer 0.26
+ 8.5s  ดนตรี 0.40  เสียงพูด 0.62  | Speech 0.62, Music 0.40, Speech synthesizer 0.14
+ 9.0s  ดนตรี 0.54  เสียงพูด 0.59  | Speech 0.59, Music 0.54, Ambient music 0.11
+ 9.5s  ดนตรี 0.57  เสียงพูด 0.86  | Speech 0.86, Music 0.57, Radio 0.16
+10.0s  ดนตรี 0.63  เสียงพูด 0.78  | Speech 0.78, Music 0.63, Electronic music 0.06
+10.5s  ดนตรี 0.66  เสียงพูด 0.06  | Music 0.66, New-age music 0.15, Electronic music 0.06
 11.0s  ดนตรี 0.73  เสียงพูด 0.00  | Music 0.73, Glockenspiel 0.09, Ringtone 0.08
