@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import build as B
+import scenic
 from build import build_audio, wrap_th, LayoutError
 
 W, H, FPS, DUR = 1280, 720, 30, 10.0
@@ -53,14 +54,17 @@ def word_layer(word, tl, p, y, max_size=230):
     for i, ch in enumerate(word):
         q = ease((tl - 0.04 * i) / 0.35)
         if q > 0:
-            d.text((x, y + (1 - q) * 70), ch, font=f, fill=RED + (int(235 * q),), anchor="lm")
+            d.text((x, y + (1 - q) * 70), ch, font=f, fill=tuple((ST["cur"][0] or {}).get("word_color", RED)) + (int(235 * q),), anchor="lm")
         x += f.getlength(word[:i + 1]) - f.getlength(word[:i])
     return lay
 
 
 def text_base(shot, p, tl, t):
-    """พื้นสตูดิโอ + แถบตัวอักษรวิ่ง + คีย์เวิร์ดของฉาก (อยู่หลังรองเท้า)"""
-    bg = Image.fromarray(ST["bg"].astype(np.uint8)).convert("RGBA")
+    """พื้นสตูดิโอ (หรือฉากยามเย็น) + แถบตัวอักษรวิ่ง + คีย์เวิร์ดของฉาก (อยู่หลังสินค้า)"""
+    if ST.get("theme") == "twilight":
+        bg = scenic.scene(ST["SC"], W, H, t)
+    else:
+        bg = Image.fromarray(ST["bg"].astype(np.uint8)).convert("RGBA")
     ys = [0.17, 0.5, 0.83]
     mq = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     for r, (strip, period) in enumerate(ST["marquee"]):
@@ -120,6 +124,14 @@ def compose_studio(sc, angle, cx, cy, sweep, single=False):
     """พื้นหลังสตูดิโอ + เงา + รองเท้า + แสงกวาด -> RGB uint8"""
     bg = text_base(*ST["cur"])
     sh = shoes_layer(sc, angle, single)
+    if ST.get("theme") == "twilight":       # ลอยเหนือผิวน้ำ + เงาสะท้อน + หญ้าด้านหน้า
+        t = ST["cur"][3]
+        x, y = int(cx - sh.width / 2), int(cy - sh.height / 2 + 7 * math.sin(t * 1.4))
+        ref, pos = scenic.reflect(sh, x, y, gap=int(ST["SC"]["hy"] - (y + sh.height)) * 2 + 6 if y + sh.height < ST["SC"]["hy"] else 6)
+        bg.alpha_composite(ref, (pos[0], min(pos[1], H - 1)))
+        bg.alpha_composite(sh, (x, y))
+        bg.alpha_composite(scenic.grass(ST["SC"], W, H, t))
+        return finish(np.asarray(bg.convert("RGB")).astype(np.float32), sweep)
     x, y = int(cx - sh.width / 2), int(cy - sh.height / 2)
     a = sh.getchannel("A").filter(ImageFilter.GaussianBlur(22))
     shadow = Image.new("RGBA", sh.size, (30, 34, 48, 0))
@@ -157,6 +169,16 @@ def shot_frame(shot, p, t):
     kind = shot["kind"]
     sweep = (p * 1.4 - 0.2) if shot.get("sweep", True) else None
     tl = ST["cur"][2]
+    if kind == "float":         # สินค้าลอย หมุน/ซูมช้าๆ (ใช้กับฉากยามเย็น)
+        s0, s1 = shot.get("scale", [0.3, 0.33])
+        a0, a1 = shot.get("angle", [0, 0])
+        return compose_studio(s0 + (s1 - s0) * ease(p), a0 + (a1 - a0) * ease(p), W * shot.get("cx", 0.5), H * shot.get("cy", 0.42), sweep)
+    if kind == "connect":
+        im = scenic.connect(ST["SC"], W, H, t, tl, p, ST["small"], ST["fonts"])
+        return finish(np.asarray(im.convert("RGB")).astype(np.float32), None)
+    if kind == "uses":
+        im = scenic.uses(ST["SC"], W, H, t, tl, p, ST["fonts"])
+        return finish(np.asarray(im.convert("RGB")).astype(np.float32), None)
     if kind == "hero2":
         s0, s1 = shot.get("scale", [0.60, 0.65])
         return compose_studio(s0 + (s1 - s0) * ease(p), 24 - 14 * ease(p), W * 0.5, H * shot.get("cy", 0.51), sweep)
@@ -192,12 +214,15 @@ def shot_frame(shot, p, t):
         im = detail_crop(c, win, shot.get("rot180", False), shot.get("rot", 0)).filter(ImageFilter.UnsharpMask(radius=2, percent=55, threshold=2))
         return finish(np.asarray(im).astype(np.float32), sweep)
     if kind == "end":
-        arr = compose_studio(0.47 + 0.05 * ease(p), -31 + 3 * ease(p), W * 0.27, H * 0.50, p * 1.2 - 0.1)
+        s0, s1 = shot.get("scale", [0.47, 0.52])
+        a0, a1 = shot.get("angle", [-31, -28])
+        arr = compose_studio(s0 + (s1 - s0) * ease(p), a0 + (a1 - a0) * ease(p), W * shot.get("cx", 0.27), H * shot.get("cy", 0.50), p * 1.2 - 0.1)
         img = Image.fromarray(arr).convert("RGBA")
         lay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         d = ImageDraw.Draw(lay)
         k1, k2 = ease((tl - 0.15) / 0.6), ease((tl - 0.55) / 0.5)
-        d.text((W * 0.71 + 60 * (1 - k1), H * 0.46), shot["text"], font=ST["f_brand"], fill=NAVY + (int(255 * k1),), anchor="mm")
+        tc = tuple(shot.get("text_color", NAVY))
+        d.text((W * 0.71 + 60 * (1 - k1), H * 0.46), shot["text"], font=ST["f_brand"], fill=tc + (int(255 * k1),), anchor="mm")
         if shot.get("tag"):
             ft = ST["f_tag"]
             tw_ = ft.getlength(shot["tag"])
@@ -317,7 +342,11 @@ def main():
                             spec.get("music_style", "soft"), marks[-1][1] + 0.3)
         # ขอบเขตแต่ละฉาก = กึ่งกลางช่องว่างระหว่างประโยค
         bounds = [0.0] + [(marks[i][1] + marks[i + 1][0]) / 2 for i in range(len(marks) - 1)] + [DUR]
-        cut = crop_cut(Image.open(f"{assets}/cutout.png").convert("RGBA"))
+        cut = crop_cut(Image.open(f"{assets}/{spec.get('cut_file', 'cutout.png')}").convert("RGBA"))
+        ST.update(theme=spec.get("theme", "studio"), fonts={"label": ImageFont.truetype(FONT_M, 26)},
+                  small=crop_cut(Image.open(f"{assets}/cutout.png").convert("RGBA")))
+        if ST["theme"] == "twilight":
+            ST["SC"] = scenic.build(W, H)
         ST.update(bg=studio_bg(), cut=cut, single=split_left(cut),
                   big=Image.open(f"{assets}/photo_x4.png").convert("RGB"), shots=shots, segs=segs, marks=marks,
                   bounds=bounds, subtitles=spec.get("subtitles", True), f_brand=font(spec.get("brand_size", 84)),
