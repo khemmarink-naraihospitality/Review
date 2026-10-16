@@ -336,7 +336,8 @@ def main():
     tmp = tempfile.mkdtemp()
     try:
         m4a, marks, speed = build_audio(segs, tmp, dur=DUR, lead=spec.get("lead", 0.35),
-                                        tail=spec.get("outro", 0.45), max_extra=spec.get("max_gap_extra", 0.25))
+                                        tail=spec.get("outro", 0.45), max_extra=spec.get("max_gap_extra", 0.25),
+                                        voice_fx=spec.get("voice_fx", False))
         if spec.get("music", True):
             m4a = mix_music(m4a, tmp, spec.get("music_bpm", 92), spec.get("music_lufs", -21.0),
                             spec.get("music_style", "soft"), marks[-1][1] + 0.3, spec.get("music_fade", 0.8))

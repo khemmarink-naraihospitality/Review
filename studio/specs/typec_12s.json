@@ -107,5 +107,6 @@
     }
   ],
   "out": "../typec_review12.mp4",
-  "music_fade": 1.2
+  "music_fade": 1.2,
+  "voice_fx": true
 }

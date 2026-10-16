@@ -64,7 +64,12 @@ def ease(t):
 
 
 # ---------------------------------------------------------------- audio
-def build_audio(segs, tmp, dur=None, lead=None, tail=None, max_extra=0.25):
+VOICE_FX = ("highpass=f=90,equalizer=f=250:t=q:w=1:g=1.5,equalizer=f=3500:t=q:w=1.2:g=3,"
+            "aexciter=amount=2:drive=6:blend=0:freq=5500:ceil=16000,deesser=i=0.4,"
+            "acompressor=threshold=0.12:ratio=3:attack=8:release=120:makeup=1.6,")
+
+
+def build_audio(segs, tmp, dur=None, lead=None, tail=None, max_extra=0.25, voice_fx=False):
     """สังเคราะห์ทีละประโยค -> ไทม์ไลน์ + เวลาเริ่ม/จบของแต่ละประโยค"""
     dur = DUR if dur is None else dur
     lead = LEAD if lead is None else lead
@@ -96,7 +101,7 @@ def build_audio(segs, tmp, dur=None, lead=None, tail=None, max_extra=0.25):
     sf.write(wav, line, TTS_SR)
     m4a = os.path.join(tmp, "voice.m4a")
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-ar", "48000", "-ac", "2",
-                    "-af", "alimiter=limit=0.85", "-c:a", "aac", "-b:a", "160k", m4a], check=True)
+                    "-af", (VOICE_FX if voice_fx else "") + "alimiter=limit=0.85", "-c:a", "aac", "-b:a", "160k", m4a], check=True)
     return m4a, marks, speed
 
 
