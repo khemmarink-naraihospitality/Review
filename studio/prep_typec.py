@@ -9,19 +9,47 @@ W0, H0 = im.size
 S = lambda pts: [(x * K, y * K) for x, y in pts]
 mask = Image.new("L", (W0 * K, H0 * K), 0)
 d = ImageDraw.Draw(mask)
-d.polygon(S([(100, 413), (355, 292), (414, 294), (417, 349), (375, 373), (116, 497)]), fill=255)
-d.ellipse(S([(80, 412), (124, 498)]), fill=255)                      # หน้าแจ็คกลม
-cable = [(405, 311), (440, 290), (500, 279), (560, 281), (607, 294), (643, 318), (663, 348), (669, 383), (662, 423), (642, 460), (619, 490), (600, 508)]
-d.line(S(cable), fill=255, width=18 * K, joint="curve")
-for p in (cable[0], cable[-1]):
-    d.ellipse((p[0] * K - 9 * K, p[1] * K - 9 * K, p[0] * K + 9 * K, p[1] * K + 9 * K), fill=255)
-d.polygon(S([(349, 557), (533, 453), (561, 456), (607, 519), (607, 561), (432, 651)]), fill=255)
-d.polygon(S([(279, 608), (295, 595), (349, 574), (427, 640), (420, 655), (360, 689), (345, 685), (283, 630)]), fill=255)   # หัว USB-C
+
+
+def spline(pts, n=24):
+    """Catmull-Rom: เส้นโค้งเรียบผ่านทุกจุด (แทนเส้นหักมุม)"""
+    P = [pts[0]] + list(pts) + [pts[-1]]
+    out = []
+    for i in range(1, len(P) - 2):
+        p0, p1, p2, p3 = (np.array(P[k], float) for k in (i - 1, i, i + 1, i + 2))
+        for t in np.linspace(0, 1, n, endpoint=False):
+            out.append(0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t ** 3))
+    out.append(np.array(pts[-1], float))
+    return [tuple(p) for p in out]
+
+
+def ellipse_poly(cx, cy, a, b, rot_deg, n=120):
+    r = np.radians(rot_deg)
+    t = np.linspace(0, 2 * np.pi, n)
+    x, y = a * np.cos(t), b * np.sin(t)
+    return [(cx + x[i] * np.cos(r) - y[i] * np.sin(r), cy + x[i] * np.sin(r) + y[i] * np.cos(r)) for i in range(n)]
+
+
+d.polygon(S([(100, 413), (350, 299), (372, 348), (116, 497)]), fill=255)                       # กระบอกแจ็ค
+d.polygon(S(ellipse_poly(100, 455, 20, 45, -13)), fill=255)                                    # หน้าแจ็ค (วงรีเอียง)
+d.polygon(S([(348, 299), (398, 297), (432, 296), (441, 303), (426, 318), (372, 348)]), fill=255)  # ปลายต่อสายฝั่งแจ็ค
+cable = spline([(434, 301), (470, 286), (510, 279), (560, 281), (607, 294), (643, 318), (663, 348), (669, 383),
+                (662, 423), (642, 460), (619, 490), (604, 508)])
+pts = np.array(cable)
+seg = np.linalg.norm(np.diff(pts, axis=0), axis=1)
+dist = np.concatenate([[0], np.cumsum(seg)])
+for u in np.arange(0, dist[-1], 0.25):                                # ปั๊มวงกลมถี่ๆ ตามเส้น: ขอบเรียบ ไม่หยัก
+    x, y = np.interp(u, dist, pts[:, 0]), np.interp(u, dist, pts[:, 1])
+    d.ellipse(((x - 8) * K, (y - 8) * K, (x + 8) * K, (y + 8) * K), fill=255)
+d.polygon(S([(349, 557), (528, 456), (548, 462), (575, 488), (604, 512), (610, 530), (607, 561), (432, 651)]), fill=255)  # ตัว USB-C
+d.polygon(S([(340, 566), (349, 557), (358, 561), (354, 580), (346, 574)]), fill=255)           # ขอบหน้าตัว USB-C
+d.polygon(S([(349, 557), (402, 590), (432, 630), (352, 578)]), fill=255)                        # หน้าตัวเครื่องระหว่างหัวโลหะ
+d.polygon(S([(276, 610), (282, 602), (346, 573), (352, 578), (430, 628), (428, 660), (352, 692), (340, 694), (290, 660), (276, 630)]), fill=255)  # หัวโลหะ
 if os.environ.get("OVERLAY"):
     ov = im.resize((W0 * 2, H0 * 2)).convert("RGBA")
     edge = mask.resize((W0 * 2, H0 * 2)).filter(ImageFilter.FIND_EDGES).point(lambda v: 255 if v > 40 else 0)
     red = Image.new("RGBA", ov.size, (255, 0, 0, 255)); ov.paste(red, (0, 0), edge)
-    ov.crop((120, 500, 1400, 1420)).convert("RGB").save(os.environ["OVERLAY"])
+    ov.crop(tuple(int(v) for v in os.environ.get('OVBOX', '120,500,1400,1420').split(','))).convert("RGB").save(os.environ["OVERLAY"])
 mask = mask.filter(ImageFilter.MinFilter(5)).filter(ImageFilter.GaussianBlur(2.5))   # เว้นขอบนิด + ขอบนุ่ม
 if os.path.exists(f"{OUT}/photo_x4.png"):
     big = Image.open(f"{OUT}/photo_x4.png").convert("RGB")

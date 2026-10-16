@@ -301,10 +301,10 @@ def denoise_details(shots):
     ST["big"] = Image.fromarray(big)
 
 
-def mix_music(voice_m4a, tmp, bpm, music_lufs, style="soft", outro_at=None):
+def mix_music(voice_m4a, tmp, bpm, music_lufs, style="soft", outro_at=None, fade=0.8):
     """ดนตรีพื้นหลัง + ducking อัตโนมัติตอนมีเสียงพากย์ แล้วจำกัดพีค"""
     import soundfile as sf, pyloudnorm as pyln, music
-    x = music.make_fun(DUR, bpm, outro_at) if style == "fun" else music.make(DUR, bpm)
+    x = music.make_fun(DUR, bpm, outro_at) if style == "fun" else music.make(DUR, bpm, fade=fade)
     x = x * (10 ** ((music_lufs - pyln.Meter(music.SR).integrated_loudness(x)) / 20))
     bgm = os.path.join(tmp, "bgm.wav")
     sf.write(bgm, x, music.SR)
@@ -339,7 +339,7 @@ def main():
                                         tail=spec.get("outro", 0.45), max_extra=spec.get("max_gap_extra", 0.25))
         if spec.get("music", True):
             m4a = mix_music(m4a, tmp, spec.get("music_bpm", 92), spec.get("music_lufs", -21.0),
-                            spec.get("music_style", "soft"), marks[-1][1] + 0.3)
+                            spec.get("music_style", "soft"), marks[-1][1] + 0.3, spec.get("music_fade", 0.8))
         # ขอบเขตแต่ละฉาก = กึ่งกลางช่องว่างระหว่างประโยค
         bounds = [0.0] + [(marks[i][1] + marks[i + 1][0]) / 2 for i in range(len(marks) - 1)] + [DUR]
         cut = crop_cut(Image.open(f"{assets}/{spec.get('cut_file', 'cutout.png')}").convert("RGBA"))

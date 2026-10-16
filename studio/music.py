@@ -86,7 +86,7 @@ def highpass(x, fc):
     return np.fft.irfft(X / np.sqrt(1 + (fc / np.maximum(f, 1)) ** 4), len(x))
 
 
-def make(seconds=10.0, bpm=92, seed=7):
+def make(seconds=10.0, bpm=92, seed=7, fade=0.8):
     rng = np.random.default_rng(seed)
     beat = 60 / bpm
     bar = beat * 4
@@ -128,7 +128,7 @@ def make(seconds=10.0, bpm=92, seed=7):
         ci += 1
     L, R = reverb(L[:n], rng), reverb(R[:n], np.random.default_rng(seed + 1))
     st = np.stack([highpass(lowpass(L, 6000), 160), highpass(lowpass(R, 6000), 160)], 1)
-    fi, fo = int(0.25 * SR), int(0.8 * SR)
+    fi, fo = int(0.25 * SR), int(fade * SR)
     st[:fi] *= np.linspace(0, 1, fi)[:, None]
     st[-fo:] *= (np.linspace(1, 0, fo) ** 1.3)[:, None]
     return (st / np.abs(st).max() * 0.7).astype(np.float32)

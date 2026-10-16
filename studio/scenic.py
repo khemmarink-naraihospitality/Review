@@ -37,8 +37,10 @@ def build(W, H, seed=3):
     ridge = hy - (14 + 10 * np.sin(xs / 140.0) + 7 * np.sin(xs / 53.0 + 1.3) + 5 * np.sin(xs / 23.0 + 0.4))
     for x in range(W):                                   # ภูเขาไกล (โทนจาง)
         img[int(ridge[x]):hy, x] = img[int(ridge[x]):hy, x] * 0.55 + np.array([112, 98, 150]) * 0.45
-    shimmer = (np.sin(np.arange(H - hy)[:, None] * 0.9 + xs[None, :] * 0.013) > 0.985) * 18.0
-    img[hy:] += shimmer[..., None]                       # ประกายน้ำบางๆ
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    sun = np.exp(-(((xx - W * 0.52) / (W * 0.30)) ** 2 + ((yy - hy) / (H * 0.16)) ** 2))
+    img += sun[..., None] * np.array([46, 22, 6], np.float32)          # แสงอุ่นยามเย็นตรงขอบฟ้า
+    img = np.asarray(Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(1.5))).astype(np.float32)
     blades = []
     for side in (0, 1):                                  # หญ้าลาเวนเดอร์มุมซ้าย/ขวาล่าง
         for _ in range(46):
@@ -46,7 +48,7 @@ def build(W, H, seed=3):
             blades.append((bx, rng.uniform(150, 330), rng.uniform(-0.35, 0.35), rng.uniform(0, 6.28), rng.uniform(1.5, 3.5),
                            rng.random() < 0.55))
     bokeh = [(rng.uniform(0, W), rng.uniform(0, hy), rng.uniform(6, 22), rng.uniform(6, 16), rng.uniform(0, 6.28)) for _ in range(26)]
-    return {"bg": np.clip(img, 0, 255), "hy": hy, "blades": blades, "bokeh": bokeh}
+    return {"bg": np.clip(img, 0, 255), "hy": hy, "blades": blades, "bokeh": bokeh, "W": W, "H": H}
 
 
 def scene(SC, W, H, t):
@@ -77,7 +79,7 @@ def grass(SC, W, H, t):
             tx, ty = pts[-1]
             for j in range(6):
                 d.ellipse((tx - 4 - j * math.sin(sway) * 3, ty + j * 9 - 4, tx + 4 - j * math.sin(sway) * 3, ty + j * 9 + 6), fill=LAV + (240,))
-    return lay
+    return lay.filter(ImageFilter.GaussianBlur(1.6))       # ระยะชัดตื้น: หญ้าด้านหน้านุ่มลง
 
 
 def reflect(layer, x, y, gap, strength=0.42):
@@ -113,6 +115,13 @@ def icon_gamepad(d, cx, cy, s, col, bg):
     for dx, dy in ((0.20, -0.05), (0.30, 0.06)):
         x, y = cx + dx * s, cy + dy * s
         d.ellipse((x - s * 0.05, y - s * 0.05, x + s * 0.05, y + s * 0.05), fill=bg)
+
+
+def label(d, x, y, text, font, a):
+    """ป้ายตัวหนังสือบนแถบเข้มนุ่ม อ่านง่ายแม้มีหญ้าด้านหลัง"""
+    w = font.getlength(text)
+    d.rounded_rectangle((x - w / 2 - 16, y - 21, x + w / 2 + 16, y + 21), 21, fill=(30, 26, 60, int(150 * a)))
+    d.text((x, y), text, font=font, fill=(255, 255, 255, int(245 * a)), anchor="mm")
 
 
 def glyph(d, cx, cy, s, ch, col):
@@ -159,8 +168,8 @@ def connect(SC, W, H, t, tl, p, cut, fonts):
         im.alpha_composite(c, (x0, y0))
     for i, label in enumerate(("PHONE", "TYPE-C TO 3.5MM", "HEADPHONES")):
         if k[i] > 0:
-            ld = ImageDraw.Draw(im)
-            ld.text((xs[i], y + 150), label, font=fonts["label"], fill=(255, 255, 255, int(235 * k[i])), anchor="mm")
+            ld = ImageDraw.Draw(im, "RGBA")
+            globals()["label"](ld, xs[i], y + 150, label, fonts["label"], k[i])
     return im
 
 
@@ -187,6 +196,6 @@ def uses(SC, W, H, t, tl, p, fonts):
             glyph(d, x, yy + 2, r * 0.95, "☎", col)
         else:
             icon_gamepad(d, x, yy + 4, r * 1.05, col, (255, 255, 255, int(235 * k)))
-        d.text((x, yy + r + 42), label, font=fonts["label"], fill=(255, 255, 255, int(240 * k)), anchor="mm")
+        globals()["label"](d, x, yy + r + 42, label, fonts["label"], k)
     im.alpha_composite(lay)
     return im
