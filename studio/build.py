@@ -75,7 +75,8 @@ def build_audio(segs, tmp, dur=None, lead=None, tail=None, max_extra=0.25, voice
     lead = LEAD if lead is None else lead
     tail = TAIL if tail is None else tail
     for speed in (1.0, 1.05, 1.10):
-        clips = [synth(s.get("say") or s["text"], speed=round(speed * s.get("speed", 1.0), 3)) for s in segs]
+        clips = [np.zeros(int(s["silent"] * TTS_SR), np.float32) if s.get("silent") else
+                 synth(s.get("say") or s["text"], speed=round(speed * s.get("speed", 1.0), 3)) for s in segs]
         durs = [len(c) / TTS_SR for c in clips]
         total = lead + sum(durs) + GAP * (len(segs) - 1)
         if total <= dur - tail:
@@ -91,9 +92,10 @@ def build_audio(segs, tmp, dur=None, lead=None, tail=None, max_extra=0.25, voice
         line[a:a + len(c)] += c
         marks.append((t, t + d))
         t += d + gap
-    meter = pyln.Meter(TTS_SR)
-    loud = meter.integrated_loudness(line)
-    line = line * (10 ** ((TARGET_LUFS - loud) / 20))
+    if np.abs(line).max() > 0:                                  # ไม่มีเสียงพากย์ (ทุกช่วงเงียบ) = ไม่ต้องปรับความดัง
+        meter = pyln.Meter(TTS_SR)
+        loud = meter.integrated_loudness(line)
+        line = line * (10 ** ((TARGET_LUFS - loud) / 20))
     peak = np.abs(line).max()
     if peak > 0.84:                                             # ~ -1.5 dBFS
         line = line * (0.84 / peak)

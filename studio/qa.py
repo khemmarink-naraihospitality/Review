@@ -84,7 +84,8 @@ def run(video, spec_path):
         # ถอดเสียงย้อนกลับทีละประโยค (ใช้เป็นตัวชี้วัดความชัด ไม่ใช่การตัดสินสุดท้าย)
         from asr import transcribe
         sims = []
-        for seg, s in zip(timing["segments"], spec["segments"]):
+        asr_segs = [] if spec.get("voice", True) is False else timing["segments"]   # ไม่มีเสียงพากย์: ข้ามการถอดเสียง
+        for seg, s in zip(asr_segs, spec["segments"]):
             lo, hi = max(0, int((seg["start"] - 0.4) * sr)), min(len(x), int((seg["end"] + 0.4) * sr))
             p = os.path.join(tmp, "s.wav")
             sf.write(p, x[lo:hi], sr)
@@ -93,8 +94,11 @@ def run(video, spec_path):
             r = difflib.SequenceMatcher(None, clean(ref), clean(hyp)).ratio()
             sims.append(r)
             add("PASS" if r >= 0.6 else "WARN", "ถอดเสียงกลับ", f"{r:.2f} | อ่าน: {ref} | ได้ยินเป็น: {hyp}")
-        mean = sum(sims) / len(sims)
-        add("PASS" if mean >= 0.6 else ("WARN" if mean >= 0.4 else "FAIL"), "ความชัดเฉลี่ย", f"{mean:.2f} (≥0.6 ดี, <0.4 ไม่ผ่าน)")
+        mean = sum(sims) / len(sims) if sims else None
+        if mean is None:
+            add("PASS", "เสียงพากย์", "ไม่มี (ตั้งใจ: ข้อความบนจอ + เพลง)")
+        else:
+            add("PASS" if mean >= 0.6 else ("WARN" if mean >= 0.4 else "FAIL"), "ความชัดเฉลี่ย", f"{mean:.2f} (≥0.6 ดี, <0.4 ไม่ผ่าน)")
 
     # เฟรมต้องไม่ว่าง/ไม่ค้าง + contact sheet
     tmp2 = tempfile.mkdtemp()

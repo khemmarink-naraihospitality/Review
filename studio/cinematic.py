@@ -91,11 +91,11 @@ def ease(p):
     return p * p * (3 - 2 * p)
 
 
-def studio_bg():
+def studio_bg(edge=(205, 209, 217), center=(249, 250, 252)):
     y, x = np.mgrid[0:H, 0:W].astype(np.float32)
     r = np.sqrt(((x - W * 0.5) / (W * 0.62)) ** 2 + ((y - H * 0.46) / (H * 0.75)) ** 2)
     k = np.clip(1 - r, 0, 1) ** 0.8
-    base = np.array([205, 209, 217], np.float32) + (np.array([249, 250, 252], np.float32) - np.array([205, 209, 217], np.float32)) * k[..., None]
+    base = np.array(edge, np.float32) + (np.array(center, np.float32) - np.array(edge, np.float32)) * k[..., None]
     return base
 
 
@@ -348,7 +348,7 @@ def main():
                   small=crop_cut(Image.open(f"{assets}/cutout.png").convert("RGBA")))
         if ST["theme"] == "twilight":
             ST["SC"] = scenic.build(W, H)
-        ST.update(bg=studio_bg(), cut=cut, single=split_left(cut),
+        ST.update(bg=studio_bg(*spec.get("bg_colors", [(205, 209, 217), (249, 250, 252)])), cut=cut, single=split_left(cut),
                   big=Image.open(f"{assets}/photo_x4.png").convert("RGB"), shots=shots, segs=segs, marks=marks,
                   bounds=bounds, subtitles=spec.get("subtitles", True), f_brand=font(spec.get("brand_size", 84)),
                   marquee=build_marquee(spec.get("marquee", [])), wfont={}, fade_out=spec.get("fade_out", 0.0),
