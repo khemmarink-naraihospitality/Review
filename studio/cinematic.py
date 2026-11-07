@@ -23,6 +23,17 @@ RED, NAVY, MARQ = (200, 16, 46), (20, 33, 61), (219, 222, 230)
 ST = {}
 
 
+def is_thai(t):
+    return any("\u0e00" <= ch <= "\u0e7f" for ch in t)
+
+
+def pick_font(text, latin_path, size):
+    """ข้อความไทย -> ฟอนต์ไทย (Loma) ; อังกฤษ -> ฟอนต์ดีไซน์"""
+    if is_thai(text):
+        return ImageFont.truetype(FONT_B, int(size * 0.8), layout_engine=ImageFont.Layout.RAQM)
+    return ImageFont.truetype(latin_path, size)
+
+
 def build_marquee(texts, size=150):
     """แถบตัวอักษรอังกฤษวิ่งด้านหลัง: แต่ละแถวเป็นข้อความซ้ำต่อกันยาวกว่าจอ"""
     f = ImageFont.truetype(FONT_D, size)
@@ -44,13 +55,18 @@ def word_layer(word, tl, p, y, max_size=230):
     f = ST["wfont"].get((word, max_size))
     if f is None:
         sz = max_size
-        while ImageFont.truetype(FONT_D, sz).getlength(word) > W * 0.9:
+        while pick_font(word, FONT_D, sz).getlength(word) > W * 0.9:
             sz -= 6
-        f = ST["wfont"][(word, max_size)] = ImageFont.truetype(FONT_D, sz)
+        f = ST["wfont"][(word, max_size)] = pick_font(word, FONT_D, sz)
     lay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(lay)
     total = f.getlength(word)
     x = (W - total) / 2 + 18 * ease(p) - 9
+    if is_thai(word):                     # ไทย: สระ/วรรณยุกต์ต้องอยู่กับพยัญชนะ จึงขยับเป็นคำเดียว
+        q = ease(tl / 0.45)
+        d.text((W / 2 + 18 * ease(p) - 9, y + (1 - q) * 70), word, font=f,
+               fill=tuple((ST["cur"][0] or {}).get("word_color", RED)) + (int(235 * q),), anchor="mm")
+        return lay
     for i, ch in enumerate(word):
         q = ease((tl - 0.04 * i) / 0.35)
         if q > 0:
@@ -222,9 +238,10 @@ def shot_frame(shot, p, t):
         d = ImageDraw.Draw(lay)
         k1, k2 = ease((tl - 0.15) / 0.6), ease((tl - 0.55) / 0.5)
         tc = tuple(shot.get("text_color", NAVY))
-        d.text((W * 0.71 + 60 * (1 - k1), H * 0.46), shot["text"], font=ST["f_brand"], fill=tc + (int(255 * k1),), anchor="mm")
+        fb = pick_font(shot["text"], FONT_M, ST["f_brand"].size) if is_thai(shot["text"]) else ST["f_brand"]
+        d.text((W * 0.71 + 60 * (1 - k1), H * 0.46), shot["text"], font=fb, fill=tc + (int(255 * k1),), anchor="mm")
         if shot.get("tag"):
-            ft = ST["f_tag"]
+            ft = pick_font(shot["tag"], FONT_D, 34)
             tw_ = ft.getlength(shot["tag"])
             cx_, cy_ = W * 0.71, H * 0.60 + 20 * (1 - k2)
             d.rounded_rectangle((cx_ - tw_ / 2 - 26, cy_ - 30, cx_ + tw_ / 2 + 26, cy_ + 30), 30, fill=RED + (int(255 * k2),))

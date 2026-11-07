@@ -1,0 +1,131 @@
+{
+  "size": [
+    1280,
+    720
+  ],
+  "duration": 10.0,
+  "assets": "../assets/typec_quick",
+  "subtitles": false,
+  "music": true,
+  "music_style": "soft",
+  "music_lufs": -18.0,
+  "music_fade": 1.4,
+  "voice": false,
+  "bg_colors": [
+    [
+      8,
+      10,
+      18
+    ],
+    [
+      46,
+      52,
+      78
+    ]
+  ],
+  "brand_font": "montserrat",
+  "brand_size": 60,
+  "marquee": [],
+  "fade_out": 0.5,
+  "segments": [
+    {
+      "text": "x",
+      "silent": 2.0
+    },
+    {
+      "text": "x",
+      "silent": 2.0
+    },
+    {
+      "text": "x",
+      "silent": 1.9
+    },
+    {
+      "text": "x",
+      "silent": 2.3
+    }
+  ],
+  "shots": [
+    {
+      "kind": "float",
+      "scale": [
+        0.924310588235294,
+        1.0083388235294117
+      ],
+      "angle": [
+        -6,
+        0
+      ],
+      "cy": 0.58,
+      "word": "Type-C เป็นแจ็ค 3.5",
+      "word_color": [
+        255,
+        255,
+        255
+      ],
+      "word_y": 0.12,
+      "word_size": 110
+    },
+    {
+      "kind": "float",
+      "scale": [
+        0.9453176470588235,
+        1.0188423529411763
+      ],
+      "angle": [
+        8,
+        2
+      ],
+      "cy": 0.58,
+      "word": "ฟังเพลง โทรศัพท์ เล่นเกม",
+      "word_color": [
+        255,
+        255,
+        255
+      ],
+      "word_y": 0.12,
+      "word_size": 110
+    },
+    {
+      "kind": "float",
+      "scale": [
+        0.9453176470588235,
+        1.0188423529411763
+      ],
+      "angle": [
+        -4,
+        2
+      ],
+      "cy": 0.58,
+      "word": "ไม่มีเสียงรบกวน",
+      "word_color": [
+        255,
+        255,
+        255
+      ],
+      "word_y": 0.12,
+      "word_size": 110
+    },
+    {
+      "kind": "end",
+      "scale": [
+        0.7562541176470587,
+        0.819275294117647
+      ],
+      "angle": [
+        0,
+        -3
+      ],
+      "cx": 0.28,
+      "cy": 0.5,
+      "text": "Type-C เป็นแจ็ค 3.5",
+      "text_color": [
+        255,
+        255,
+        255
+      ],
+      "tag": "สั่งซื้อได้เลย"
+    }
+  ],
+  "out": "../typec_quick.mp4"
+}
